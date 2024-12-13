@@ -1,0 +1,27 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.12.35527.113 d17.12
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Identity", "Identity", "{F7D4412E-6F62-4341-AAC4-0288F2CE269A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IdentityService.Api", "Identity\IdentityService.Api\IdentityService.Api.csproj", "{23165956-5A9A-4FEC-95E6-F9D816D1E086}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{23165956-5A9A-4FEC-95E6-F9D816D1E086}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{23165956-5A9A-4FEC-95E6-F9D816D1E086}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{23165956-5A9A-4FEC-95E6-F9D816D1E086}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{23165956-5A9A-4FEC-95E6-F9D816D1E086}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{23165956-5A9A-4FEC-95E6-F9D816D1E086} = {F7D4412E-6F62-4341-AAC4-0288F2CE269A}
+	EndGlobalSection
+EndGlobal
