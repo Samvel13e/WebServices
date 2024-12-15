@@ -4,21 +4,21 @@ using IdentityService.Api.Models.Dto;
 using IdentityService.Api.Services.IServices;
 using Microsoft.AspNetCore.Identity;
 
-namespace IdentityService.Api.Service
+namespace IdentityService.Api.Services
 {
-    public sealed class AuthService(IdentityServiceDbContext db,
+    public sealed class AuthService(IdentityServiceDbContext context,
                                     UserManager<ApplicationUser> userManager,
                                     RoleManager<IdentityRole> roleManager,
                                     IJwtTokenGenerator jwtTokenGenerator) : IAuthService
     {
-        private readonly IdentityServiceDbContext _db = db;
+        private readonly IdentityServiceDbContext _context = context;
         private readonly UserManager<ApplicationUser> _userManager = userManager;
         private readonly RoleManager<IdentityRole> _roleManager = roleManager;
         private readonly IJwtTokenGenerator _jwtTokenGenerator = jwtTokenGenerator;
 
         public async Task<bool> AssignRole(string email, string roleName)
         {
-            var user = _db.ApplicationUsers.FirstOrDefault(u => u.Email == email);
+            var user = _context.ApplicationUsers.FirstOrDefault(u => u.Email == email);
             if (user != null)
             {
                 bool existRole = await _roleManager.RoleExistsAsync(roleName);
@@ -33,14 +33,14 @@ namespace IdentityService.Api.Service
             return false;
         }
 
-        public async Task<LoginResponseDto> Login(LoginRequestDto loginRequestDto) // TODO check order of check and null
+        public async Task<LoginResponseDto> Login(LoginRequestDto loginRequestDto)
         {
-            var user = _db.ApplicationUsers.FirstOrDefault(u => u.UserName == loginRequestDto.UserName);
+            var user = _context.ApplicationUsers.FirstOrDefault(u => u.UserName == loginRequestDto.UserName);
 
             bool isValid = await _userManager.CheckPasswordAsync(user, loginRequestDto.Password);
             if (user == null || !isValid)
             {
-                return new LoginResponseDto { Token = string.Empty }; // TODO check response Token = string.Empty
+                return new LoginResponseDto { Token = string.Empty };
             }
             var roles = await _userManager.GetRolesAsync(user);
             string token = _jwtTokenGenerator.GenerateToken(user, roles);
@@ -50,12 +50,12 @@ namespace IdentityService.Api.Service
                 Email = user.Email,
                 Id = user.Id,
                 Name = user.Name,
-                PhoneNumber = user.PhoneNumber
+                PhoneNumber = user.PhoneNumber,
             };
             LoginResponseDto loginResponseDto = new()
             {
                 User = userDto,
-                Token = token
+                Token = $"Bearer {token}"
             };
             return loginResponseDto;
         }
@@ -70,7 +70,7 @@ namespace IdentityService.Api.Service
             return false;
         }
 
-        public async Task<string> Register(RegistrationRequestDto registrationRequestDto) // TODO add nullcheck
+        public async Task<string> Register(RegistrationRequestDto registrationRequestDto)
         {
             ApplicationUser user = new()
             {
@@ -86,14 +86,6 @@ namespace IdentityService.Api.Service
                 var result = await _userManager.CreateAsync(user, registrationRequestDto.Password);
                 if (result.Succeeded)
                 {
-                    //var userToReturn = _db.ApplicationUsers.First(u => u.UserName == registrationRequestDto.Email);
-                    //UserDto userDto = new() // TODO : check need or not
-                    //{
-                    //    Email = userToReturn.Email,
-                    //    ID = userToReturn.Id,
-                    //    Name = userToReturn.Name,
-                    //    PhoneNumber = userToReturn.PhoneNumber
-                    //};
                     return string.Empty;
                 }
                 else
@@ -101,10 +93,10 @@ namespace IdentityService.Api.Service
                     return result.Errors.FirstOrDefault().Description;
                 }
             }
-            catch (Exception) // TODO should to change
+            catch (Exception)
             {
+                return "Error  Encountered";
             }
-            return "Error  Encountered";
         }
     }
 }

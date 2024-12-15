@@ -1,9 +1,15 @@
 using IdentityService.Api.Data;
+using IdentityService.Api.Extensions;
 using IdentityService.Api.Models;
-using IdentityService.Api.Service;
+using IdentityService.Api.Services;
 using IdentityService.Api.Services.IServices;
+using LoggingService;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi.Models;
+using RabbitMQService.Services;
+using RabbitMQService.Services.IServices;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,7 +17,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<IdentityServiceDbContext>(optiion =>
 {
-    optiion.UseSqlServer(builder.Configuration.GetConnectionString("AuthConnection"));
+    optiion.UseSqlServer(builder.Configuration.GetConnectionString("IdentityConnection"));
 });
 
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("AppSettings:JwtOptions"));
@@ -21,15 +27,44 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
                           .AddDefaultTokenProviders();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
-
+builder.Services.AddAuthorization();
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+
+var connectionString = builder.Configuration.GetConnectionString("LogDatabase");
+builder.Services.AddSerilogLogging(connectionString);
+
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        In = ParameterLocation.Header,
+        Description = "Please enter a valid JWT token",
+        Name = "Authorization",
+        Type = SecuritySchemeType.ApiKey
+    });
+
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            new string[] {}
+        }
+    });
+});
+
+builder.Services.AddSingleton<IRabbitMqPublisher, RabbitMqPublisher>();
 
 var app = builder.Build();
+app.UseGlobalExceptionHandler();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -45,7 +80,6 @@ else
     });
 }
 
-
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
@@ -57,9 +91,9 @@ app.Run();
 void ApplayMigration()
 {
     using var scope = app.Services.CreateScope();
-    var _db = scope.ServiceProvider.GetRequiredService<IdentityServiceDbContext>();
-    if (_db.Database.GetPendingMigrations().Any())
+    var _context = scope.ServiceProvider.GetRequiredService<IdentityServiceDbContext>();
+    if (_context.Database.GetPendingMigrations().Any())
     {
-        _db.Database.Migrate();
+        _context.Database.Migrate();
     }
 }

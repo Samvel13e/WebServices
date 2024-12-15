@@ -6,7 +6,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 
-namespace IdentityService.Api.Service
+namespace IdentityService.Api.Services
 {
     public sealed class JwtTokenGenerator(IOptions<JwtOptions> jwtOptions) : IJwtTokenGenerator
     {
@@ -29,7 +29,7 @@ namespace IdentityService.Api.Service
                 Audience = _jwtOptions.Audience,
                 Issuer = _jwtOptions.Issuer,
                 Subject = new ClaimsIdentity(claimList),
-                Expires = DateTime.UtcNow.AddDays(7), // TODO check days count
+                Expires = DateTime.UtcNow.AddDays(7), 
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
             };
 

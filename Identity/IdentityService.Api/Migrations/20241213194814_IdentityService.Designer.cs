@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace IdentityService.Api.Migrations
 {
     [DbContext(typeof(IdentityServiceDbContext))]
-    [Migration("20241213185804_IdentityService")]
+    [Migration("20241213194814_IdentityService")]
     partial class IdentityService
     {
         /// <inheritdoc />

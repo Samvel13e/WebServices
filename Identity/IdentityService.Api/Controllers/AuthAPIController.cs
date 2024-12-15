@@ -1,16 +1,20 @@
-﻿using IdentityService.Api.Models.Dto;
+﻿using CommonService.Enum;
+using IdentityService.Api.Models.Dto;
 using IdentityService.Api.Services.IServices;
 using Microsoft.AspNetCore.Mvc;
+using RabbitMQService.Constants;
+using RabbitMQService.Models;
+using RabbitMQService.Services.IServices;
 
 namespace IdentityService.Api.Controllers
 {
     [Route("api/auth")]
     [ApiController]
     public class AuthAPIController(IAuthService authService,
-                                                        IConfiguration configuration) : ControllerBase
+                                   IRabbitMqPublisher publisher) : ControllerBase
     {
         private readonly IAuthService _authService = authService;
-        private readonly IConfiguration _configuration = configuration;
+        private readonly IRabbitMqPublisher _publisher = publisher;
         private readonly ResponseDto _response = new();
 
         [HttpPost("register")]
@@ -19,11 +23,19 @@ namespace IdentityService.Api.Controllers
             string errorMessage = await _authService.Register(model);
             if (!string.IsNullOrEmpty(errorMessage))
             {
-                _response.IsSuccess = false;
-                _response.Message = errorMessage;
-                return BadRequest(_response);
+                throw new Exception(errorMessage);
             }
-            string topic_queue_Name = _configuration.GetValue<string>("TopikAndQueueNames:RegisterUserQueue");
+            var publishModel = new NotificationConsumerModel()
+            {
+                Channel = NotificationChannels.Email,
+                Email = model.Email,
+                PhoneNumber = model.PhoneNumber,
+                NotificationType=NotificationTypes.Registration,    
+                Subject= "Congratulations",
+                Body=$"Dear {model.Name}, you are successfully registered."
+                
+            };
+            await _publisher.PublishAsync(ServiceNames.Identity, Exchanges.RegisterUserExchange, RoutingKeys.RegisterUserRoutingKey, publishModel);
 
             return Ok(_response);
         }
@@ -34,9 +46,7 @@ namespace IdentityService.Api.Controllers
             LoginResponseDto loginResponse = await _authService.Login(model);
             if (loginResponse.User == null)
             {
-                _response.IsSuccess = false;
-                _response.Message = "Username or password is incorrect"; // TODO change this row from hard code
-                return BadRequest(_response);
+                throw new Exception("Username or password is incorrect");
             }
             _response.Result = loginResponse;
             return Ok(_response);
@@ -45,12 +55,10 @@ namespace IdentityService.Api.Controllers
         [HttpPost("AssignRole")]
         public async Task<IActionResult> AssignRole([FromBody] RegistrationRequestDto model)
         {
-            var assignRoleSuccessful = await _authService.AssignRole(model.Email, model.Role.ToUpper());
+            var assignRoleSuccessful = await _authService.AssignRole(model.Email, model.Role.ToString().ToUpper());
             if (!assignRoleSuccessful)
             {
-                _response.IsSuccess = false;
-                _response.Message = "Error encountered"; // TODO change this row from hard code
-                return BadRequest(_response);
+                throw new Exception("Error encountered");
             }
             return Ok(_response);
         }
@@ -62,6 +70,5 @@ namespace IdentityService.Api.Controllers
             _response.Result = isEmailFree;
             return Ok(_response);
         }
-
     }
 }
